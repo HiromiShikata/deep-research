@@ -1,0 +1,84 @@
+name: UMINO Project
+on:
+  issues:
+    types:
+      - opened
+      - reopened
+      - assigned
+      - unassigned
+      - labeled
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - review_requested
+      - assigned
+      - unassigned
+      - labeled
+      - opened
+      - edited
+      - reopened
+      - synchronize
+  issue_comment:
+    types:
+      - created
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+
+env:
+  unread: Unread
+  in_progress: In Progress
+  user: HiromiShikata
+  project_id: 48
+  project_v2_id: PVT_kwHOAGJHa84AFWnr
+  field_id: PVTF_lAHOAGJHa84AFWnrzgIk_H0
+  team_repo: '7sea.world, blog-tech, media-pinpoint-research, instagram-beauty-aesthetics-review, umino-corporait-operation, instagram-14LBaggageTraveler, hashigoya-project'
+
+jobs:
+  umino-job:
+    if: (github.event_name != 'issue_comment' || github.event.comment.user.login != 'umino-bot') && github.event.action != 'labeled'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate hs-bot-gh-ap installation token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.HS_BOT_GH_AP_APP_ID }}
+          private-key: ${{ secrets.HS_BOT_GH_AP_PRIVATE_KEY }}
+          owner: HiromiShikata
+      - name: Auto assign PR to owner
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.action == 'opened'
+        uses: pozil/auto-assign-issue@v3.0.0
+        with:
+          assignees: HiromiShikata
+          repo-token: ${{ steps.app-token.outputs.token }}
+
+  check_pull_requests_to_link_issues:
+    runs-on: ubuntu-latest
+    name: Check linked issues in pull requests
+    if: >-
+      (github.event_name == 'pull_request')
+    steps:
+      - name: Generate hs-bot-gh-ap installation token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.HS_BOT_GH_AP_APP_ID }}
+          private-key: ${{ secrets.HS_BOT_GH_AP_PRIVATE_KEY }}
+          owner: HiromiShikata
+      - uses: nearform-actions/github-action-check-linked-issues@v1
+        id: check-linked-issues
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
+        with:
+          exclude-branches: 'release/**, dependabot/**, project-common/**, renovate/**'
+          github-token: ${{ steps.app-token.outputs.token }}
+          loose-matching: true
+          skip-linked-issues-check-label: ''
+      - name: Get the output
+        run: echo "How many linked issues? ${{ steps.check-linked-issues.outputs.linked_issues_count }}"
